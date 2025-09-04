@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>💌 For You</title>
+    <meta name="description" content="A tiny interactive love site." />
+    <style>
+      :root {
+        --bg1: #0d0b1f;
+        --bg2: #301934;
+        --accent: #ff4d6d;
+        --accent-2: #ffd166;
+        --text: #fffafc;
+        --muted: #d7b7c9;
+        --glass: rgba(255, 255, 255, 0.08);
+        --card: rgba(255, 255, 255, 0.12);
+        --ok: #22c55e;
+        --no: #ef4444;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+          "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+          "Segoe UI Emoji";
+        color: var(--text);
+        background: radial-gradient(
+            1200px 800px at 20% 10%,
+            rgba(255, 77, 109, 0.15),
+            transparent 60%
+          ),
+          radial-gradient(
+            1000px 700px at 80% 90%,
+            rgba(255, 209, 102, 0.15),
+            transparent 60%
+          ),
+          linear-gradient(135deg, var(--bg1), var(--bg2));
+        overflow: hidden;
+      }
+      /* Floating hearts background via canvas */
+      #bgCanvas {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+      }
+
+      .wrap {
+        position: relative;
+        z-index: 1;
+        min-height: 100%;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      .card {
+        width: min(900px, 92vw);
+        background: var(--glass);
+        backdrop-filter: blur(14px) saturate(1.2);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 28px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+        overflow: hidden;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 20px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.06),
+          transparent
+        );
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+      }
+      .logo {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border-radius: 10px;
+        background: conic-gradient(from 210deg, var(--accent), var(--accent-2));
+        color: #120b14;
+        font-weight: 900;
+      }
+      .mute {
+        appearance: none;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        background: var(--card);
+        color: var(--text);
+        padding: 8px 12px;
+        border-radius: 999px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .mute:hover {
+        transform: translateY(-1px);
+      }
+
+      .screen {
+        display: none;
+        padding: 36px 26px 28px;
+      }
+      .screen.active {
+        display: block;
+        animation: fade 0.5s ease;
+      }
+      @keyframes fade {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      .hero {
+        display: grid;
+        gap: 20px;
+        place-items: center;
+        text-align: center;
+        padding: 16px 10px 30px;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(28px, 4vw, 48px);
+        line-height: 1.08;
+      }
+      p.lead {
+        color: var(--muted);
+        margin: 0;
+        font-size: clamp(16px, 1.9vw, 18px);
+      }
+
+      .btns {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 20px;
+      }
+      .btn {
+        padding: 12px 18px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: var(--card);
+        color: var(--text);
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      }
+      .btn.primary {
+        background: linear-gradient(135deg, var(--accent), #ff7992);
+        border-color: transparent;
+        color: #1a0c13;
+      }
+
+      /* Typewriter poem */
+      .poem {
+        display: grid;
+        gap: 10px;
+        text-align: center;
+        min-height: 160px;
+        margin-top: 10px;
+      }
+      .line {
+        opacity: 0;
+        transform: translateY(6px);
+        transition: all 0.5s ease;
+      }
+      .line.show {
+        opacity: 1;
+        transform: none;
+      }
+
+      /* Choice screen */
+      .choice {
+        display: grid;
+        gap: 24px;
+        place-items: center;
+        text-align: center;
+        padding: 6px 0 20px;
+      }
+      .heart {
+        font-size: 72px;
+        animation: beat 1.4s infinite;
+      }
+      @keyframes beat {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.2);
+        }
+      }
+
+      .yesno {
+        position: relative;
+        width: min(520px, 88vw);
+        height: 160px;
+        margin: auto;
+      }
+      .yesno button {
+        position: absolute;
+        padding: 14px 22px;
+        border-radius: 16px;
+        border: none;
+        font-weight: 800;
+        cursor: pointer;
+        transition: transform 0.15s ease;
+      }
+      .yes {
+        left: 8%;
+        top: 42%;
+        background: linear-gradient(135deg, #34d399, #a7f3d0);
+        color: #052e1a;
+      }
+      .yes:hover {
+        transform: scale(1.08);
+      }
+      .no {
+        right: 8%;
+        top: 42%;
+        background: linear-gradient(135deg, #ef4444, #fecaca);
+        color: #3b0a0a;
+      }
+
+      .tip {
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      /* Final screen */
+      .final {
+        display: grid;
+        gap: 16px;
+        place-items: center;
+        text-align: center;
+        padding-bottom: 30px;
+      }
+      .fireworks {
+        position: relative;
+        width: 100%;
+        height: 220px;
+        overflow: visible;
+      }
+
+      /* Toast */
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 24px;
+        transform: translateX(-50%);
+        background: var(--card);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 10px 14px;
+        border-radius: 12px;
+        display: none;
+        z-index: 5;
+      }
+      .toast.show {
+        display: block;
+      }
+
+      /* Heart cursor trail */
+      .trail {
+        position: fixed;
+        pointer-events: none;
+        font-size: 16px;
+        animation: floatUp 0.9s ease-out forwards;
+      }
+      @keyframes floatUp {
+        from {
+          transform: translateY(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateY(-24px);
+          opacity: 0;
+        }
+      }
+
+      /* Share link */
+      .share {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      input.link {
+        width: min(500px, 80vw);
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+      }
+
+      /* Small print */
+      footer {
+        text-align: center;
+        color: var(--muted);
+        font-size: 12px;
+        padding: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="bgCanvas"></canvas>
+    <audio id="music" preload="auto" src="song.mp3"></audio>
+
+    <div class="wrap">
+      <div class="card">
+        <header>
+          <div class="brand">
+            <div class="logo">❤</div>
+            <span>For <span id="person">You</span></span>
+          </div>
+          <button class="mute" id="muteBtn" title="Play/Pause music">
+            ▶ Music
+          </button>
+        </header>
+
+        <!-- Screen 1: Hello -->
+        <section class="screen active" id="s1">
+          <div class="hero">
+            <h1 id="greet">Hey there 💫</h1>
+            <p class="lead">
+              I made a tiny website just for you. No pressure. Just vibes,
+              smiles, and maybe a little magic.
+            </p>
+            <div class="btns">
+              <button class="btn primary" id="startBtn">Open it ✨</button>
+              <button class="btn" id="nameBtn">Enter your name</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Screen 2: Poem -->
+        <section class="screen" id="s2">
+          <div class="hero">
+            <h1>Lines I wrote thinking of you</h1>
+            <div class="poem" id="poem"></div>
+            <div class="btns">
+              <button class="btn primary" id="toChoice">Continue →</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Screen 3: Choice -->
+        <section class="screen" id="s3">
+          <div class="choice">
+            <div class="heart">❤️</div>
+            <h1>Will you go out with me on a little adventure?</h1>
+            <p class="tip">
+              (I promise snacks, bad jokes, and your favorite songs.)
+            </p>
+            <div class="yesno">
+              <button class="yes" id="yesBtn">Yes! 💖</button>
+              <button class="no" id="noBtn">Umm… No 😅</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Screen 4: Final -->
+        <section class="screen" id="s4">
+          <div class="final">
+            <h1 id="finalTitle">Yay! You just made my day! 🎉</h1>
+            <div class="fireworks" id="fireworks"></div>
+            <p class="lead">Pick a day? I’ll plan everything. Pinky promise.</p>
+            <label>Choose a date: <input type="date" id="datePick" /></label>
+            <div class="btns">
+              <button class="btn primary" id="savePlan">
+                Save the date 💌
+              </button>
+              <button class="btn" id="copyLink">Share this page</button>
+            </div>
+            <div class="share" id="shareBox" style="display: none">
+              <input class="link" id="shareLink" readonly />
+              <button class="btn" id="copyBtn">Copy</button>
+            </div>
+          </div>
+        </section>
+
+        <footer>Made thinking of you ❤️</footer>
+      </div>
+    </div>
+
+    <div class="toast" id="toast">Copied!</div>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+
+    <script>
+          // ----- Personalization helpers -----
+          const qs = new URLSearchParams(location.search);
+          const nameFromQuery = qs.get('name');
+          const personEl = document.getElementById('person');
+          const greetEl = document.getElementById('greet');
+          let personName = nameFromQuery || localStorage.getItem('valentine_name') || '';
+
+          function setName(name){
+            personName = name?.trim() || '';
+            if(personName){
+              personEl.textContent = personName;
+              greetEl.textContent = `Hey ${personName} ✨`;
+              localStorage.setItem('valentine_name', personName);
+              document.title = `💌 For ${personName}`;
+            }else{
+              personEl.textContent = 'You';
+              greetEl.textContent = 'Hey there 💫';
+              document.title = '💌 For You';
+            }
+          }
+
+          if(personName) setName(personName);
+
+          document.getElementById('nameBtn').addEventListener('click', ()=>{
+            const n = prompt("What's your name? (first name is perfect)", personName || '');
+            if(n !== null) setName(n);
+          });
+
+          // Share link prefilled
+          function updateShare(){
+            const url = new URL(location.href);
+            if(personName) url.searchParams.set('name', personName); else url.searchParams.delete('name');
+            const link = url.toString();
+            document.getElementById('shareLink').value = link;
+          }
+
+          // ----- Screen nav -----
+          const screens = ['s1','s2','s3','s4'];
+          let idx = 0;
+          function show(i){
+            screens.forEach(id=>document.getElementById(id).classList.remove('active'));
+            document.getElementById(screens[i]).classList.add('active');
+            idx = i;
+          }
+
+          document.getElementById('startBtn').addEventListener('click', ()=>{ show(1); playMusic(true); typePoem(); });
+          document.getElementById('toChoice').addEventListener('click', ()=>show(2));
+
+          // ----- Poem typing -----
+    const poemLines = [
+  "It was just an ordinary day, nothing felt profound,",
+  "Until your words arrived, like a breeze swirling around.",
+  "Love came softly, without a name or sound,",
+  "Now you're the calm when my storms surround.",
+
+  "My mornings begin with your gentle smile,",
+  "And nights feel whole with your goodnight style.",
+  "IG may have nudged, but my heart knew,",
+  "You're not just someone I found—you're my rhythm, true."
+];
+
+
+          function typePoem(){
+            const box = document.getElementById('poem');
+            box.innerHTML = '';
+            poemLines.forEach((txt,i)=>{
+              const div = document.createElement('div');
+              div.className = 'line';
+              box.appendChild(div);
+              setTimeout(()=>typeLine(div, txt, 0), 600 + i*1200);
+            });
+          }
+
+          function typeLine(el, text, pos){
+            el.classList.add('show');
+            el.textContent = text.slice(0, pos) + (pos < text.length ? '▌' : '');
+            if(pos < text.length){
+              setTimeout(()=>typeLine(el, text, pos+1), 22);
+            }else{
+              setTimeout(()=>{ el.textContent = text; }, 150);
+            }
+          }
+
+          // ----- Choice logic -----
+          const yes = document.getElementById('yesBtn');
+          const no = document.getElementById('noBtn');
+
+          yes.addEventListener('click', ()=>{ show(3); celebrate(); updateShare(); });
+
+          // Make NO button escape
+          const box = document.querySelector('.yesno');
+          no.addEventListener('mouseenter', moveNo);
+          no.addEventListener('click', moveNo);
+          function moveNo(){
+            const bw = box.clientWidth, bh = box.clientHeight;
+            const w = no.offsetWidth, h = no.offsetHeight;
+            const nx = Math.random()*(bw - w);
+            const ny = Math.random()*(bh - h);
+            no.style.left = nx + 'px';
+            no.style.top = ny + 'px';
+          }
+
+          // ----- Final screen -----
+          function celebrate(){
+            document.getElementById('finalTitle').textContent = personName ? `Yay, ${personName}! You just made my day! 🎉` : 'Yay! You just made my day! 🎉';
+            show(3); // s4 index is 3
+            fireworks();
+          }
+
+          document.getElementById('copyLink').addEventListener('click', ()=>{
+            document.getElementById('shareBox').style.display = 'flex';
+            updateShare();
+          });
+
+          document.getElementById('copyBtn').addEventListener('click', async ()=>{
+            const input = document.getElementById('shareLink');
+            input.select(); input.setSelectionRange(0, 99999);
+            try{ await navigator.clipboard.writeText(input.value); toast('Link copied!'); }
+            catch{ toast('Copied (probably)!'); }
+          });
+
+        document.getElementById('savePlan').addEventListener('click', () => {
+  const d = document.getElementById('datePick').value;
+  if (!d) return toast('Pick a date first 🙂');
+  localStorage.setItem('valentine_date', d);
+
+  // Format date nicely: 10 September 2025
+  const options = { day: 'numeric', month: 'long', year: 'numeric' };
+  const prettyDate = new Date(d).toLocaleDateString('en-GB', options);
+
+  const finalTitle = document.getElementById('finalTitle');
+  finalTitle.textContent = personName
+    ? `Yay, ${personName}! Can't wait for ${prettyDate} 💖🎉`
+    : `Yay! Can't wait for ${prettyDate} 💖🎉`;
+
+  toast('Saved! I’ll block my calendar.');
+
+  // 🎉 Trigger confetti
+  celebrationConfetti();
+
+  // 📲 WhatsApp integration
+  const phone = "919548275350"; // your number with country code
+  const msg = `Hey, I picked ${prettyDate} for our date 💖`;
+  const url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(msg)}`;
+
+  window.location.href = url; // safer for mobile
+});
+
+  // simple confetti function
+  function celebrationConfetti() {
+    const duration = 2 * 1000;
+    const end = Date.now() + duration;
+
+    (function frame() {
+      confetti({
+        particleCount: 5,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+      });
+      confetti({
+        particleCount: 5,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+      });
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    })();
+  }
+
+          
+
+          function toast(msg){
+            const t = document.getElementById('toast');
+            t.textContent = msg; t.classList.add('show');
+            setTimeout(()=>t.classList.remove('show'), 1600);
+          }
+
+          // ----- Music toggle -----
+          const music = document.getElementById('music');
+          const muteBtn = document.getElementById('muteBtn');
+          let wantsMusic = false;
+
+          function playMusic(auto){
+            if(wantsMusic || auto){
+              music.volume = .35; music.loop = true; music.play().catch(()=>{});
+              muteBtn.textContent = '⏸ Music'; wantsMusic = true;
+            }
+          }
+          muteBtn.addEventListener('click', ()=>{
+            if(music.paused){ playMusic(true); } else { music.pause(); muteBtn.textContent = '▶ Music'; wantsMusic = false; }
+          });
+
+          // ----- Background hearts canvas -----
+          const canvas = document.getElementById('bgCanvas');
+          const ctx = canvas.getContext('2d');
+          let W=0,H=0; let hearts=[];
+          function resize(){ W=canvas.width=innerWidth; H=canvas.height=innerHeight; }
+          addEventListener('resize', resize); resize();
+
+          function spawn(){
+            const t = Date.now();
+            for(let i=0;i<2;i++){
+              hearts.push({ x: Math.random()*W, y: H+20, s: Math.random()*1.2+0.6, v: Math.random()*0.8+0.4, a: Math.random()*Math.PI, born:t });
+            }
+          }
+          function draw(){
+            ctx.clearRect(0,0,W,H);
+            ctx.globalAlpha = 1;
+            hearts.forEach(h=>{
+              h.y -= h.v; h.x += Math.sin(h.a+=0.02)*0.6;
+              const size = 10*h.s;
+              ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(-Math.PI/4);
+              const g = ctx.createLinearGradient(-size, -size, size, size);
+              g.addColorStop(0, 'rgba(255,77,109,.9)'); g.addColorStop(1, 'rgba(255,209,102,.9)');
+              ctx.fillStyle = g;
+              ctx.beginPath();
+              ctx.moveTo(0,0);
+              ctx.arc(-size/2, -size/4, size/2, 0, Math.PI*2);
+              ctx.arc(size/2, -size/4, size/2, 0, Math.PI*2);
+              ctx.lineTo(0,size);
+              ctx.closePath(); ctx.fill(); ctx.restore();
+            });
+            hearts = hearts.filter(h=>h.y>-40);
+            requestAnimationFrame(draw);
+          }
+          setInterval(spawn, 800); draw();
+
+          // Cursor heart trail
+          window.addEventListener('mousemove', e=>{
+            const el = document.createElement('div');
+            el.className='trail'; el.textContent='❤';
+            el.style.left = e.clientX+'px'; el.style.top=e.clientY+'px';
+            document.body.appendChild(el);
+            setTimeout(()=>el.remove(), 900);
+          });
+
+          // Prefill saved date
+          const saved = localStorage.getItem('valentine_date');
+          if(saved) document.getElementById('datePick').value = saved;
+    </script>
+  </body>
+</html>
